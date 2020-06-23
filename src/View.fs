@@ -5,8 +5,8 @@ open Fable.Core.JsInterop
 open Browser
 open Elmish
 
-let width = window.innerWidth
-let height = window.innerHeight
+let width = window.innerWidth * 0.9
+let height = window.innerHeight * 0.9
 
 let canvas = document.getElementById("canvas") :?> Types.HTMLCanvasElement
 let ctx = canvas.getContext_2d()
@@ -18,6 +18,12 @@ let bgColor = "white"
 let drawBg () =
     ctx.fillStyle <- !^ bgColor
     ctx.fillRect(0., 0., width, height)
+
+let borderColor = "gray"
+let drawBorder (border: ColliderRectangle) =
+    let a, ac = border.A, border.C - border.A
+    ctx.strokeStyle <- !^ borderColor
+    ctx.strokeRect(a.X, a.Y, ac.X, ac.Y)
 
 let ballColor = "red"
 let drawBall (ball: PhysicsBall) = 
@@ -35,5 +41,6 @@ let drawPaddle (paddle: ColliderRectangle) =
 
 let view (model: Model) (dispatch: Dispatch<Message>) = 
     drawBg()
+    drawBorder(model.Border)
     drawBall(model.Ball)
     drawPaddle(model.Paddle)

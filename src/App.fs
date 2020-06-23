@@ -3,12 +3,12 @@ open Model
 open View
 open Update
 
-open Fable.Core
+open Browser
 open Elmish
 
 let initBall : PhysicsBall = {
     Center = vec (0.5 * width, 0.5 * height)
-    Velocity = vec (0.0, 0.0)
+    Velocity = 150. * vec (-1., 1.)
     Radius = 10.
 }
 
@@ -20,6 +20,27 @@ let initPaddle : ColliderRectangle = {
 let init () : Model = {
     Ball = initBall
     Paddle = initPaddle
+    Border = { A = vec (width * 0.05, height * 0.05); C = vec (width * 0.95, height * 0.95)}
+    State = GameState.Halt
+    LastTick = System.DateTime.Now
 }
 
-Program.mkSimple init update view |> Program.run
+let timer (_: Model) = 
+    let sub dispatch =
+        let f _ = dispatch (Message.Tick(System.DateTime.Now))
+        window.setInterval(f, 1000 / 60, []) |> ignore
+    Cmd.ofSub sub
+
+let mouse (_: Model) =
+    let sub dispatch =
+        let f (e: Types.MouseEvent) = dispatch (Message.MouseMove(vec (e.x, e.y)))
+        let g (_: Types.MouseEvent) = dispatch Message.Click
+        window.onmousemove <- f
+        window.onclick <- g
+    Cmd.ofSub sub
+
+Program.mkSimple init update view
+|> Program.withSubscription mouse
+|> Program.withSubscription timer
+|> Program.withConsoleTrace
+|> Program.run

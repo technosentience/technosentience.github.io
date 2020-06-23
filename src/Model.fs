@@ -45,8 +45,8 @@ type ColliderRectangle = {
     A: Vector
     C: Vector    
 } with
-    member this.B = { X = this.A.X; Y = this.B.Y }
-    member this.D = { X = this.B.X; Y = this.A.Y }
+    member this.B = { X = this.A.X; Y = this.C.Y }
+    member this.D = { X = this.C.X; Y = this.A.Y }
     member this.Segments = [
         { A = this.A; B = this.B }
         { A = this.B; B = this.C }
@@ -55,7 +55,7 @@ type ColliderRectangle = {
     ]
 
 [<RequireQualifiedAccess>]
-type Message = Tick | MouseMove of Vector | Click
+type Message = Tick of System.DateTime | MouseMove of Vector | Click
 
 [<RequireQualifiedAccess>]
 type GameState = Halt | Running
@@ -63,6 +63,7 @@ type GameState = Halt | Running
 type Model = {
     Ball: PhysicsBall
     Paddle: ColliderRectangle
-    // GameArea: ColliderRectangle
-    // State: GameState
+    Border: ColliderRectangle
+    State: GameState
+    LastTick: System.DateTime
 }
