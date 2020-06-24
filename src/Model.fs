@@ -26,10 +26,13 @@ type PhysicsBall = {
 } with
     member this.Tick s = { this with Center = this.Center + this.Velocity * s }
     member this.Collide (segment: Vector) = 
-        let v = this.Velocity
-        let pr = proj segment v
-        let ort = v - pr
-        { this with Velocity = pr - ort }
+        if segment = vec(0., 0.) then
+            this
+        else
+            let v = this.Velocity
+            let pr = proj segment v
+            let ort = v - pr
+            { this with Velocity = pr - ort }
 
 type ColliderSegment = {
     A: Vector
@@ -53,9 +56,12 @@ type ColliderRectangle = {
         { A = this.C; B = this.D }
         { A = this.D; B = this.A }
     ]
+    member this.CollisionVector (ball: PhysicsBall) =
+        List.fold (fun v (s: ColliderSegment) -> if s.Intersects ball then v + (s.B - s.A) else v)
+            (vec (0., 0.)) this.Segments
 
 [<RequireQualifiedAccess>]
-type Message = Tick of System.DateTime | MouseMove of Vector | Click
+type Message = Tick | MouseMove of Vector | Click
 
 [<RequireQualifiedAccess>]
 type GameState = Halt | Running
@@ -64,6 +70,11 @@ type Model = {
     Ball: PhysicsBall
     Paddle: ColliderRectangle
     Border: ColliderRectangle
+    
     State: GameState
     LastTick: System.DateTime
+    
+    Targets: ColliderRectangle[]    // TODO: rewrite using immutable containers
+    TargetsActive: bool[]
+    TargetsLeft: int
 }

@@ -17,17 +17,33 @@ let initPaddle : ColliderRectangle = {
     C = vec (0.5 * width + 60., 0.8 * height + 10.)
 }
 
+let targets : ColliderRectangle[] = [|
+        for y = 1 to 7 do
+            for x = 1 to 10 do
+                yield { 
+                    A = vec (float(x - 1) * width / 10. + 20., float(y - 1) * height / 15. + 20.)
+                    C = vec (float(x) * width / 10. - 20., float(y) * height / 15.)
+                }
+    |]
+
+let targetsActive = Array.create 70 true
+
 let init () : Model = {
     Ball = initBall
     Paddle = initPaddle
-    Border = { A = vec (width * 0.05, height * 0.05); C = vec (width * 0.95, height * 0.95)}
+    Border = { A = vec (width * 0.01, height * 0.01); C = vec (width * 0.99, height * 0.99)}
+
     State = GameState.Halt
     LastTick = System.DateTime.Now
+
+    Targets = targets
+    TargetsActive = targetsActive
+    TargetsLeft = 70
 }
 
 let timer (_: Model) = 
     let sub dispatch =
-        let f _ = dispatch (Message.Tick(System.DateTime.Now))
+        let f _ = dispatch Message.Tick
         window.setInterval(f, 1000 / 60, []) |> ignore
     Cmd.ofSub sub
 
@@ -42,5 +58,5 @@ let mouse (_: Model) =
 Program.mkSimple init update view
 |> Program.withSubscription mouse
 |> Program.withSubscription timer
-|> Program.withConsoleTrace
+//|> Program.withConsoleTrace
 |> Program.run

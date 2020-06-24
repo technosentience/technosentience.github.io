@@ -39,8 +39,20 @@ let drawPaddle (paddle: ColliderRectangle) =
     ctx.fillStyle <- !^ paddleColor
     ctx.fillRect(a.X, a.Y, ac.X, ac.Y)
 
+let rainbow = [|"red"; "orange"; "yellow"; "green"; "blue"; "indigo"; "violet"|]
+let drawTargets (targets: ColliderRectangle[], active: bool[]) =
+    for y = 1 to 7 do
+        for x = 1 to 10 do
+            if active.[(y - 1) * 10 + x - 1] then     
+                let t = targets.[(y - 1) * 10 + x - 1]
+                let a, ac = t.A, t.C - t.A
+                ctx.fillStyle <- !^ rainbow.[y - 1]
+                ctx.fillRect(a.X, a.Y, ac.X, ac.Y)
+
 let view (model: Model) (dispatch: Dispatch<Message>) = 
     drawBg()
     drawBorder(model.Border)
     drawBall(model.Ball)
     drawPaddle(model.Paddle)
+    drawTargets (model.Targets, model.TargetsActive)
+
