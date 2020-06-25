@@ -1,52 +1,62 @@
 module Model
 
-type Vector = {
-    X: float
-    Y: float
+[<Measure>] type rel
+[<Measure>] type pixel
+[<Measure>] type second
+
+type Vector<[<Measure>] 'T> = {
+    X: float<'T>
+    Y: float<'T>
 } with
-    static member (+) (a: Vector, b: Vector) = {X = a.X + b.X; Y = a.Y + b.Y}
-    static member (~-) (a: Vector) = { X = -a.X; Y = -a.Y}
-    static member (-) (a: Vector, b: Vector) = {X = a.X - b.X; Y = a.Y - b.Y}
+    static member Vec(x: float<'T>, y: float<'T>) = { X = x; Y = y }
 
-    static member (*) (a: Vector, b: float) = {X = a.X * b; Y = a.Y * b}
-    static member (*) (a: float, b: Vector) = {X = a * b.X; Y = a * b.Y}
+    static member (+) (a: Vector<'T>, b: Vector<'T>) = Vector.Vec(a.X + b.X, a.Y + b.Y)
+    static member (~-) (a: Vector<'T>) = Vector.Vec(-a.X, -a.Y)
+    static member (-) (a: Vector<'T>, b: Vector<'T>) = Vector.Vec(a.X - b.X, a.Y - b.Y)
 
-    static member (*) (a: Vector, b: Vector) = a.X * b.X + a.Y * b.Y
+    static member (*) (a: Vector<'T>, b: float<'U>) = {X = a.X * b; Y = a.Y * b}
+    static member (*) (a: float<'U>, b: Vector<'T>) = {X = a * b.X; Y = a * b.Y}
+
+    static member (*) (a: Vector<'T>, b: Vector<'U>) = a.X * b.X + a.Y * b.Y
     
     member this.Magnitude = sqrt (this * this)
     member this.Norm = (1. / this.Magnitude) * this
 
-let vec (x: float, y: float) = { X = x; Y = y }
-let proj (l: Vector) (a: Vector) = (a * l) / (l * l) * l
+    static member Zero : Vector<'T> = { X = 0.0<_>; Y = 0.0<_> }
+    member this.IsZero = (this = Vector.Zero)
+
+let vec (x: float<'T>, y: float<'T>) = { X = x; Y = y }
+let proj (l: Vector<'U>) (a: Vector<'T>) = (a * l) / (l * l) * l
 
 type PhysicsBall = {
-    Center: Vector
-    Velocity: Vector
-    Radius: float
+    Center: Vector<rel>
+    Velocity: Vector<rel/second>
+    Radius: float<rel>
 } with
-    member this.Tick s = { this with Center = this.Center + this.Velocity * s }
-    member this.Collide (segment: Vector) = 
-        if segment = vec(0., 0.) then
-            this
-        else
-            let v = this.Velocity
-            let pr = proj segment v
-            let ort = v - pr
-            { this with Velocity = pr - ort }
+    member this.Tick (s: float<second>) = { this with Center = this.Center + this.Velocity * s }
+    member this.Collide (segment: Vector<rel>) = 
+        let v = this.Velocity
+        let pr = proj segment v
+        let ort = v - pr
+        { this with Velocity = pr - ort }
+    member this.MaybeCollide (segment: Vector<rel> option) =
+        match segment with
+        | None -> this
+        | Some v -> this.Collide v
 
 type ColliderSegment = {
-    A: Vector
-    B: Vector
+    A: Vector<rel>
+    B: Vector<rel>
 } with
     member this.Intersects (ball: PhysicsBall) =
         let ab = this.B - this.A
         let ac = ball.Center - this.A
         let ad = proj ab ac
-        0. <= ad * ab && ad * ab <= ab * ab && (ac - ad).Magnitude <= ball.Radius
+        0.<rel^2> <= ad * ab && ad * ab <= ab * ab && (ac - ad).Magnitude <= ball.Radius
 
 type ColliderRectangle = {
-    A: Vector
-    C: Vector    
+    A: Vector<rel>
+    C: Vector<rel>
 } with
     member this.B = { X = this.A.X; Y = this.C.Y }
     member this.D = { X = this.C.X; Y = this.A.Y }
@@ -57,11 +67,19 @@ type ColliderRectangle = {
         { A = this.D; B = this.A }
     ]
     member this.CollisionVector (ball: PhysicsBall) =
-        List.fold (fun v (s: ColliderSegment) -> if s.Intersects ball then v + (s.B - s.A) else v)
-            (vec (0., 0.)) this.Segments
+        let v = List.fold 
+                    (fun v (s: ColliderSegment) -> if s.Intersects ball then v + (s.B - s.A) else v)
+                    (Vector<rel>.Zero) this.Segments
+        if v.IsZero then None else Some v
+    member this.Contains (p: Vector<rel>) =
+        let minx = min this.A.X this.C.X
+        let miny = min this.A.Y this.C.Y
+        let maxx = max this.A.X this.C.X
+        let maxy = max this.A.Y this.C.Y
+        minx <= p.X && p.X <= maxx && miny <= p.Y && p.Y <= maxy
 
 [<RequireQualifiedAccess>]
-type Message = Tick | MouseMove of Vector | Click
+type Message = Tick | MouseMove of Vector<rel> | Click
 
 [<RequireQualifiedAccess>]
 type GameState = Halt | Running
@@ -74,7 +92,5 @@ type Model = {
     State: GameState
     LastTick: System.DateTime
     
-    Targets: ColliderRectangle[]    // TODO: rewrite using immutable containers
-    TargetsActive: bool[]
-    TargetsLeft: int
+    Targets: (ColliderRectangle * int) list
 }
