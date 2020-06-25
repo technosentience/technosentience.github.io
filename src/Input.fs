@@ -15,7 +15,7 @@ let timer (_: Model) =
 let mouse (_: Model) =
     let sub dispatch =
         let f (e: Types.MouseEvent) = 
-            dispatch (Message.MouseMove(pixelToRelV(1.<pixel> * vec (e.x, e.y))))
+            dispatch (Message.MouseMove(pixelToRelV(1. * vec (e.x, e.y))))
         let g (_: Types.MouseEvent) = dispatch Message.Click
         window.onmousemove <- f
         window.onclick <- g

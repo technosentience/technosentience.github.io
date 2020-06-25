@@ -2,7 +2,7 @@ module Update
 open Model
 
 let updateBall (model: Model)  = 
-    let delta = (60. / 1000.) * 1.<second>
+    let delta = (60. / 1000.) * 1.
     let ball = model.Ball.Tick delta
     { model with Ball = ball }
 
@@ -35,7 +35,7 @@ let update (msg: Message) (model: Model) =
     match msg with
     | Message.MouseMove v ->
         let a, c = model.Paddle.A, model.Paddle.C
-        let mov = { (v - 0.5 * (a + c)) with Y = 0.<_> }
+        let mov = { (v - 0.5 * (a + c)) with Y = 0.}
         let paddle = { A = mov + a; C = mov + c }
         if model.Border.Contains paddle.A && model.Border.Contains paddle.C then
             { model with Paddle = paddle }

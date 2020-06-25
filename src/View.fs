@@ -5,46 +5,46 @@ open Fable.Core.JsInterop
 open Browser
 open Elmish
 
-let canvWidth = window.innerWidth * 0.9<pixel>
-let canvHeight = window.innerHeight * 0.9<pixel>
+let canvWidth = window.innerWidth * 0.9
+let canvHeight = window.innerHeight * 0.9
 
 let gameAreaWidth = canvWidth * 0.8
 let gameAreaHeight = canvWidth / 1.5
 
-let relHeight = 100.<rel>
-let relWidth = 150.<rel>
+let relHeight = 100.
+let relWidth = 150.
 
-let relToPixel (r: float<rel>) = r * (gameAreaHeight / relHeight)
-let relToPixelV (r: Vector<rel>) = { X = relToPixel r.X; Y = relToPixel r.Y}
+let relToPixel (r: float) = r * (gameAreaHeight / relHeight)
+let relToPixelV (r: Vector) = { X = relToPixel r.X; Y = relToPixel r.Y}
 
-let pixelToRel (p: float<pixel>) = p * (relHeight / gameAreaHeight)
-let pixelToRelV (p: Vector<pixel>) = { X = pixelToRel p.X; Y = pixelToRel p.Y}
+let pixelToRel (p: float) = p * (relHeight / gameAreaHeight)
+let pixelToRelV (p: Vector) = { X = pixelToRel p.X; Y = pixelToRel p.Y}
 
 let canvas = document.getElementById("canvas") :?> Types.HTMLCanvasElement
 let ctx = canvas.getContext_2d()
 
-canvas.width <- canvWidth * 1.<1/pixel>
-canvas.height <- canvHeight * 1.<1/pixel>
+canvas.width <- canvWidth * 1.
+canvas.height <- canvHeight * 1.
 
 let colorRect (color : string) (x, y, w, h) =
     System.Console.WriteLine(color)
     printfn "%A %A %A %A" x y w h
     ctx.fillStyle <- !^ color
-    ctx.fillRect(x * 1.<1/pixel>, y * 1.<1/pixel>, w * 1.<1/pixel>, h * 1.<1/pixel>)
+    ctx.fillRect(x * 1., y * 1., w * 1., h * 1.)
 
 let strokeRect (color : string) (x, y, w, h) =
     ctx.strokeStyle <- !^ color
-    ctx.strokeRect(x * 1.<1/pixel>, y * 1.<1/pixel>, w * 1.<1/pixel>, h * 1.<1/pixel>)
+    ctx.strokeRect(x * 1., y * 1., w * 1., h * 1.)
 
 let colorCircle (color: string) (x, y, r) =
     ctx.beginPath()
-    ctx.arc(x * 1.<1/pixel>, y * 1.<1/pixel>, r * 1.<1/pixel>, 0., 2. * System.Math.PI)
+    ctx.arc(x * 1., y * 1., r * 1., 0., 2. * System.Math.PI)
     ctx.fillStyle <- !^ color
     ctx.fill()
 
 let bgColor = "white"
 let drawBg () =
-    colorRect bgColor (0.<_>, 0.<_>, canvWidth, canvHeight)
+    colorRect bgColor (0., 0., canvWidth, canvHeight)
 
 let borderColor = "gray"
 let drawBorder (border: ColliderRectangle) =

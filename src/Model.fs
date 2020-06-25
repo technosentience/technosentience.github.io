@@ -1,62 +1,58 @@
 module Model
 
-[<Measure>] type rel
-[<Measure>] type pixel
-[<Measure>] type second
-
-type Vector<[<Measure>] 'T> = {
-    X: float<'T>
-    Y: float<'T>
+type Vector = {
+    X: float
+    Y: float
 } with
-    static member Vec(x: float<'T>, y: float<'T>) = { X = x; Y = y }
+    static member Vec(x: float, y: float) = { X = x; Y = y }
 
-    static member (+) (a: Vector<'T>, b: Vector<'T>) = Vector.Vec(a.X + b.X, a.Y + b.Y)
-    static member (~-) (a: Vector<'T>) = Vector.Vec(-a.X, -a.Y)
-    static member (-) (a: Vector<'T>, b: Vector<'T>) = Vector.Vec(a.X - b.X, a.Y - b.Y)
+    static member (+) (a: Vector, b: Vector) = Vector.Vec(a.X + b.X, a.Y + b.Y)
+    static member (~-) (a: Vector) = Vector.Vec(-a.X, -a.Y)
+    static member (-) (a: Vector, b: Vector) = Vector.Vec(a.X - b.X, a.Y - b.Y)
 
-    static member (*) (a: Vector<'T>, b: float<'U>) = {X = a.X * b; Y = a.Y * b}
-    static member (*) (a: float<'U>, b: Vector<'T>) = {X = a * b.X; Y = a * b.Y}
+    static member (*) (a: Vector, b: float) = {X = a.X * b; Y = a.Y * b}
+    static member (*) (a: float, b: Vector) = {X = a * b.X; Y = a * b.Y}
 
-    static member (*) (a: Vector<'T>, b: Vector<'U>) = a.X * b.X + a.Y * b.Y
+    static member (*) (a: Vector, b: Vector) = a.X * b.X + a.Y * b.Y
     
     member this.Magnitude = sqrt (this * this)
     member this.Norm = (1. / this.Magnitude) * this
 
-    static member Zero : Vector<'T> = { X = 0.0<_>; Y = 0.0<_> }
+    static member Zero : Vector = { X = 0.0; Y = 0.0 }
     member this.IsZero = (this = Vector.Zero)
 
-let vec (x: float<'T>, y: float<'T>) = { X = x; Y = y }
-let proj (l: Vector<'U>) (a: Vector<'T>) = (a * l) / (l * l) * l
+let vec (x: float, y: float) = { X = x; Y = y }
+let proj (l: Vector) (a: Vector) = (a * l) / (l * l) * l
 
 type PhysicsBall = {
-    Center: Vector<rel>
-    Velocity: Vector<rel/second>
-    Radius: float<rel>
+    Center: Vector
+    Velocity: Vector
+    Radius: float
 } with
-    member this.Tick (s: float<second>) = { this with Center = this.Center + this.Velocity * s }
-    member this.Collide (segment: Vector<rel>) = 
+    member this.Tick (s: float) = { this with Center = this.Center + this.Velocity * s }
+    member this.Collide (segment: Vector) = 
         let v = this.Velocity
         let pr = proj segment v
         let ort = v - pr
         { this with Velocity = pr - ort }
-    member this.MaybeCollide (segment: Vector<rel> option) =
+    member this.MaybeCollide (segment: Vector option) =
         match segment with
         | None -> this
         | Some v -> this.Collide v
 
 type ColliderSegment = {
-    A: Vector<rel>
-    B: Vector<rel>
+    A: Vector
+    B: Vector
 } with
     member this.Intersects (ball: PhysicsBall) =
         let ab = this.B - this.A
         let ac = ball.Center - this.A
         let ad = proj ab ac
-        0.<rel^2> <= ad * ab && ad * ab <= ab * ab && (ac - ad).Magnitude <= ball.Radius
+        0. <= ad * ab && ad * ab <= ab * ab && (ac - ad).Magnitude <= ball.Radius
 
 type ColliderRectangle = {
-    A: Vector<rel>
-    C: Vector<rel>
+    A: Vector
+    C: Vector
 } with
     member this.B = { X = this.A.X; Y = this.C.Y }
     member this.D = { X = this.C.X; Y = this.A.Y }
@@ -69,9 +65,9 @@ type ColliderRectangle = {
     member this.CollisionVector (ball: PhysicsBall) =
         let v = List.fold 
                     (fun v (s: ColliderSegment) -> if s.Intersects ball then v + (s.B - s.A) else v)
-                    (Vector<rel>.Zero) this.Segments
+                    (Vector.Zero) this.Segments
         if v.IsZero then None else Some v
-    member this.Contains (p: Vector<rel>) =
+    member this.Contains (p: Vector) =
         let minx = min this.A.X this.C.X
         let miny = min this.A.Y this.C.Y
         let maxx = max this.A.X this.C.X
@@ -79,7 +75,7 @@ type ColliderRectangle = {
         minx <= p.X && p.X <= maxx && miny <= p.Y && p.Y <= maxy
 
 [<RequireQualifiedAccess>]
-type Message = Tick | MouseMove of Vector<rel> | Click
+type Message = Tick | MouseMove of Vector | Click
 
 [<RequireQualifiedAccess>]
 type GameState = Halt | Running
