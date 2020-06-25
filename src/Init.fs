@@ -3,15 +3,18 @@ open Model
 open View
 open Update
 
+let rng = System.Random()
+
 let initBall : PhysicsBall = {
     Center = vec (75., 50.)
-    Velocity = 10. * vec (-1., 1.)
+    Velocity = let a = rng.NextDouble() * System.Math.PI in 20. * vec (cos a, -sin a)
     Radius = 1.
 }
 
-let initPaddle : ColliderRectangle = {
-    A = vec (75. - pixelToRel(60.), 80. - pixelToRel(10.))
-    C = vec (75. + pixelToRel(60.), 80. + pixelToRel(10.))
+let initPaddle : ColliderPaddle = {
+    Center = vec (75., 80.)
+    Width = pixelToRel(120.)
+    Height = pixelToRel(20.)
 }
 
 let targets = [

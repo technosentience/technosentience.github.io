@@ -31,15 +31,21 @@ let updateCollisions (model: Model) =
     let ball = ball.MaybeCollide (model.Paddle.CollisionVector ball)
     processTargets { model with Ball = ball }
 
-let update (msg: Message) (model: Model) = 
+let gameUpdate (msg: Message) (model: Model) = 
     match msg with
     | Message.MouseMove v ->
-        let a, c = model.Paddle.A, model.Paddle.C
-        let mov = { (v - 0.5 * (a + c)) with Y = 0.}
-        let paddle = { A = mov + a; C = mov + c }
-        if model.Border.Contains paddle.A && model.Border.Contains paddle.C then
-            { model with Paddle = paddle }
-        else model
+        let c = model.Paddle.Center
+        let paddle = { model.Paddle with Center = (vec (v.X, c.Y)) }
+        // if model.Border.Contains paddle.A && model.Border.Contains paddle.C then
+        { model with Paddle = paddle }
+        // else model
     | Message.Tick ->
         model |> updateBall |> updateCollisions
     | _ -> model
+
+let update (msg: Message) (model: Model) =
+    let m = (
+        match msg with
+        | Message.Click -> { model with State = GameState.Running }
+        | _ -> model)
+    if m.State = GameState.Running then gameUpdate msg m else m

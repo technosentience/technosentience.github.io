@@ -57,9 +57,13 @@ let drawBall (ball: PhysicsBall) =
     colorCircle ballColor (c.X, c.Y, r)
 
 let paddleColor = "black"
-let drawPaddle (paddle: ColliderRectangle) =
-    let a, ac = relToPixelV paddle.A, relToPixelV (paddle.C - paddle.A)
-    colorRect paddleColor (a.X, a.Y, ac.X, ac.Y)
+let drawPaddle (paddle: ColliderPaddle) =
+    let c, w, h = relToPixelV paddle.Center, relToPixel paddle.Width, relToPixel paddle.Height
+    let rw, rh = w - h, h
+    let rx, ry = c.X - 0.5 * rw, c.Y - 0.5 * rh
+    colorRect paddleColor (rx, ry, rw, rh)
+    colorCircle paddleColor (rx, c.Y, 0.5 * rh)
+    colorCircle paddleColor (rx + rw, c.Y, 0.5 * rh)
 
 let rainbow = [|"red"; "orange"; "yellow"; "green"; "blue"; "indigo"; "violet"|]
 let drawTargets (targets: (ColliderRectangle * int) list)  =
@@ -69,8 +73,8 @@ let drawTargets (targets: (ColliderRectangle * int) list)  =
         
 
 let view (model: Model) (dispatch: Dispatch<Message>) = 
-//    drawBg()
-//    drawBorder(model.Border)
-//    drawBall(model.Ball)
+    drawBg()
+    drawBorder(model.Border)
+    drawBall(model.Ball)
     drawPaddle(model.Paddle)
-//    drawTargets(model.Targets)
+    drawTargets(model.Targets)

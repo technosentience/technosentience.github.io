@@ -21,6 +21,8 @@ type Vector = {
     static member Zero : Vector = { X = 0.0; Y = 0.0 }
     member this.IsZero = (this = Vector.Zero)
 
+    member this.RotateLeft a = { X = this.X * cos a - this.Y * sin a; Y = this.X * sin a + this.Y * cos a }
+
 let vec (x: float, y: float) = { X = x; Y = y }
 let proj (l: Vector) (a: Vector) = (a * l) / (l * l) * l
 
@@ -74,6 +76,27 @@ type ColliderRectangle = {
         let maxy = max this.A.Y this.C.Y
         minx <= p.X && p.X <= maxx && miny <= p.Y && p.Y <= maxy
 
+type ColliderPaddle = {
+    Center: Vector
+    Height: float
+    Width: float
+} with
+    member this.MainSegment = {
+        A = vec (this.Center.X - this.Width * 0.5, this.Center.Y - this.Height * 0.5)
+        B = vec (this.Center.X + this.Width * 0.5, this.Center.Y - this.Height * 0.5)
+    }
+    member this.CollisionVector (ball: PhysicsBall) =
+        if not (this.MainSegment.Intersects ball) then
+            None
+        else
+            let v = this.MainSegment.A - this.MainSegment.B
+            let ratio = abs (((ball.Center - this.MainSegment.A) * v) / (v * v))
+            if ratio < 0.33 then
+                Some (v.RotateLeft -(15. / 180. * System.Math.PI))
+            else if ratio > 0.67 then
+                Some(v.RotateLeft (15. / 180. * System.Math.PI))
+            else Some v
+
 [<RequireQualifiedAccess>]
 type Message = Tick | MouseMove of Vector | Click
 
@@ -82,7 +105,7 @@ type GameState = Halt | Running
 
 type Model = {
     Ball: PhysicsBall
-    Paddle: ColliderRectangle
+    Paddle: ColliderPaddle
     Border: ColliderRectangle
     
     State: GameState
