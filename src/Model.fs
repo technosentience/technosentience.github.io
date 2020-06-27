@@ -31,8 +31,8 @@ type PhysicsBall = {
     Velocity: Vector
     Radius: float
 } with
-    member this.Tick (s: float) = { this with Center = this.Center + this.Velocity * s }
-    member this.Collide (segment: Vector) = 
+    member this.Tick (s: float) = { this with Center = this.Center + this.Velocity * s}
+    member this.Collide (segment: Vector) =  
         let v = this.Velocity
         let pr = proj segment v
         let ort = v - pr
@@ -51,6 +51,13 @@ type ColliderSegment = {
         let ac = ball.Center - this.A
         let ad = proj ab ac
         0. <= ad * ab && ad * ab <= ab * ab && (ac - ad).Magnitude <= ball.Radius
+    member this.Collides (ball: PhysicsBall) =
+        let ab = this.B - this.A
+        let ac = ball.Center - this.A
+        let ad = proj ab ac
+        let cd = ad - ac
+        (0. <= ad * ab && ad * ab <= ab * ab && (ac - ad).Magnitude <= ball.Radius)
+            && (cd * ball.Velocity >= 0.)
 
 type ColliderRectangle = {
     A: Vector
@@ -66,7 +73,7 @@ type ColliderRectangle = {
     ]
     member this.CollisionVector (ball: PhysicsBall) =
         let v = List.fold 
-                    (fun v (s: ColliderSegment) -> if s.Intersects ball then v + (s.B - s.A) else v)
+                    (fun v (s: ColliderSegment) -> if s.Collides ball then v + (s.B - s.A) else v)
                     (Vector.Zero) this.Segments
         if v.IsZero then None else Some v
     member this.Contains (p: Vector) =
@@ -86,7 +93,7 @@ type ColliderPaddle = {
         B = vec (this.Center.X + this.Width * 0.5, this.Center.Y - this.Height * 0.5)
     }
     member this.CollisionVector (ball: PhysicsBall) =
-        if not (this.MainSegment.Intersects ball) then
+        if not (this.MainSegment.Collides ball) then
             None
         else
             let v = this.MainSegment.A - this.MainSegment.B
@@ -101,13 +108,14 @@ type ColliderPaddle = {
 type Message = Tick | MouseMove of Vector | Click
 
 [<RequireQualifiedAccess>]
-type GameState = Halt | Running
+type GameState = Halt | Running | Lost | Won
 
 type Model = {
     Ball: PhysicsBall
     Paddle: ColliderPaddle
     Border: ColliderRectangle
-    
+    DeadArea: ColliderSegment
+
     State: GameState
     LastTick: System.DateTime
     

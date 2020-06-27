@@ -8,7 +8,7 @@ open Elmish
 let canvWidth = window.innerWidth * 0.9
 let canvHeight = window.innerHeight * 0.9
 
-let gameAreaWidth = canvWidth * 0.8
+let gameAreaWidth = canvWidth
 let gameAreaHeight = canvWidth / 1.5
 
 let relHeight = 100.
@@ -27,8 +27,6 @@ canvas.width <- canvWidth * 1.
 canvas.height <- canvHeight * 1.
 
 let colorRect (color : string) (x, y, w, h) =
-    System.Console.WriteLine(color)
-    printfn "%A %A %A %A" x y w h
     ctx.fillStyle <- !^ color
     ctx.fillRect(x * 1., y * 1., w * 1., h * 1.)
 
@@ -51,7 +49,7 @@ let drawBorder (border: ColliderRectangle) =
     let a, ac = relToPixelV border.A, relToPixelV (border.C - border.A)
     strokeRect borderColor (a.X, a.Y, ac.X, ac.Y)
 
-let ballColor = "red"
+let ballColor = "#555555"
 let drawBall (ball: PhysicsBall) = 
     let c, r = relToPixelV ball.Center, relToPixel ball.Radius
     colorCircle ballColor (c.X, c.Y, r)
@@ -66,11 +64,18 @@ let drawPaddle (paddle: ColliderPaddle) =
     colorCircle paddleColor (rx + rw, c.Y, 0.5 * rh)
 
 let rainbow = [|"red"; "orange"; "yellow"; "green"; "blue"; "indigo"; "violet"|]
+let tBorderColor = "gray"
 let drawTargets (targets: (ColliderRectangle * int) list)  =
     for (t, y) in targets do
         let a, ac = relToPixelV t.A, relToPixelV (t.C - t.A)
         colorRect (rainbow.[y - 1]) (a.X, a.Y, ac.X, ac.Y)
-        
+        strokeRect tBorderColor (a.X, a.Y, ac.X, ac.Y)
+
+let drawMessage s =
+    ctx.font <- "60px Arial"
+    ctx.fillStyle <- !^ "black"
+    ctx.textAlign <- "center"
+    ctx.fillText(s, relToPixel 75., relToPixel 45.)
 
 let view (model: Model) (dispatch: Dispatch<Message>) = 
     drawBg()
@@ -78,3 +83,10 @@ let view (model: Model) (dispatch: Dispatch<Message>) =
     drawBall(model.Ball)
     drawPaddle(model.Paddle)
     drawTargets(model.Targets)
+    let s = match model.State with
+            | GameState.Halt -> "Click to start"
+            | GameState.Running -> ""
+            | GameState.Lost -> "You lost!"
+            | GameState.Won -> "You won!"
+    drawMessage s
+

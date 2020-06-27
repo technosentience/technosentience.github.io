@@ -1,5 +1,6 @@
 module Update
 open Model
+open Init
 
 let updateBall (model: Model)  = 
     let delta = (60. / 1000.) * 1.
@@ -7,7 +8,7 @@ let updateBall (model: Model)  =
     { model with Ball = ball }
 
 let processCollision (ball: PhysicsBall) (collider: ColliderSegment) =
-    if collider.Intersects ball then 
+    if collider.Collides ball then 
         ball.Collide (collider.B - collider.A)
     else ball
 
@@ -31,21 +32,31 @@ let updateCollisions (model: Model) =
     let ball = ball.MaybeCollide (model.Paddle.CollisionVector ball)
     processTargets { model with Ball = ball }
 
+let updateState (model: Model) =
+    if model.DeadArea.Intersects model.Ball then
+        { model with State = GameState.Lost }
+    else if model.Targets.IsEmpty then
+        { model with State = GameState.Won }
+    else model
+
 let gameUpdate (msg: Message) (model: Model) = 
     match msg with
     | Message.MouseMove v ->
         let c = model.Paddle.Center
-        let paddle = { model.Paddle with Center = (vec (v.X, c.Y)) }
-        // if model.Border.Contains paddle.A && model.Border.Contains paddle.C then
+        let x = max v.X (model.Paddle.Width * 0.5) |> min (150. - model.Paddle.Width * 0.5)
+        let paddle = { model.Paddle with Center = (vec (x, c.Y)) }
         { model with Paddle = paddle }
-        // else model
+
     | Message.Tick ->
-        model |> updateBall |> updateCollisions
+        model |> updateBall |> updateCollisions |> updateState
     | _ -> model
 
 let update (msg: Message) (model: Model) =
     let m = (
         match msg with
-        | Message.Click -> { model with State = GameState.Running }
+        | Message.Click ->
+            if model.State <> GameState.Running then
+                { init () with State = GameState.Running }
+            else model
         | _ -> model)
     if m.State = GameState.Running then gameUpdate msg m else m
