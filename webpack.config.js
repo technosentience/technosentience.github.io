@@ -4,7 +4,7 @@
 
 var path = require("path");
 
-var contentFolder = "./public";
+var contentFolder = ".";
 
 module.exports = {
     mode: "development",
