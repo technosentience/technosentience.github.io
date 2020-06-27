@@ -30,13 +30,14 @@ type PhysicsBall = {
     Center: Vector
     Velocity: Vector
     Radius: float
+    CollisionTimeout: int
 } with
-    member this.Tick (s: float) = { this with Center = this.Center + this.Velocity * s}
+    member this.Tick (s: float) = { this with Center = this.Center + this.Velocity * s; CollisionTimeout = max 0 (this.CollisionTimeout - 1)}
     member this.Collide (segment: Vector) =  
         let v = this.Velocity
         let pr = proj segment v
         let ort = v - pr
-        { this with Velocity = pr - ort }
+        { this with Velocity = pr - ort; CollisionTimeout = 2 }
     member this.MaybeCollide (segment: Vector option) =
         match segment with
         | None -> this
@@ -57,7 +58,7 @@ type ColliderSegment = {
         let ad = proj ab ac
         let cd = ad - ac
         (0. <= ad * ab && ad * ab <= ab * ab && (ac - ad).Magnitude <= ball.Radius)
-            && (cd * ball.Velocity >= 0.)
+            && (cd * ball.Velocity >= 0. || ball.CollisionTimeout = 0)
 
 type ColliderRectangle = {
     A: Vector

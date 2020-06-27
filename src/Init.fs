@@ -3,10 +3,11 @@ open Model
 
 let rng = System.Random()
 
-let initBall : PhysicsBall = {
+let initBall () : PhysicsBall = {
     Center = vec (75., 50.)
     Velocity = let a = (0.25 + 0.5 * rng.NextDouble()) * System.Math.PI in 20. * vec (cos a, -sin a)
     Radius = 1.
+    CollisionTimeout = 0
 }
 
 let initPaddle : ColliderPaddle = {
@@ -29,7 +30,7 @@ let targets = [
     ]
 
 let init () : Model = {
-    Ball = initBall
+    Ball = initBall ()
     Paddle = initPaddle
     Border = { A = vec (1., 1.); C = vec (149., 99.)}
     DeadArea = { A = vec (0., 95.); B = vec (150., 95.)}
