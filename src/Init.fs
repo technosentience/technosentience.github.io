@@ -42,6 +42,4 @@ let init (): Model =
             B = vec (150., 95.) }
 
       State = GameState.Halt
-      LastTick = System.DateTime.Now
-
       Targets = targets }

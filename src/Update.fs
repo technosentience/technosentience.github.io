@@ -28,11 +28,9 @@ let processTargets (model: Model) =
 let updateCollisions (model: Model) =
     let ball = model.Ball
 
-    let ball =
-        ball.ProcessCollider model.Border
+    let ball = ball.ProcessCollider model.Border
 
-    let ball =
-        ball.ProcessCollider model.Paddle
+    let ball = ball.ProcessCollider model.Paddle
 
     processTargets { model with Ball = ball }
 
@@ -41,21 +39,28 @@ let updateState (model: Model) =
     else if model.Targets.IsEmpty then { model with State = GameState.Won }
     else model
 
+let updatePaddle (cursor: Vector) (model: Model) =
+    let c = model.Paddle.Center
+
+    let x =
+        clamp (model.Paddle.Width * 0.5) (150. - model.Paddle.Width * 0.5) cursor.X
+
+    let paddle =
+        { model.Paddle with
+              Center = (vec (x, c.Y)) }
+
+    { model with Paddle = paddle }
+
+let onClick (model: Model) =
+    if model.State <> GameState.Running then
+        { init () with
+              State = GameState.Running }
+    else
+        model
+
 let gameUpdate (msg: Message) (model: Model) =
     match msg with
-    | Message.MouseMove v ->
-        let c = model.Paddle.Center
-
-        let x =
-            max v.X (model.Paddle.Width * 0.5)
-            |> min (150. - model.Paddle.Width * 0.5)
-
-        let paddle =
-            { model.Paddle with
-                  Center = (vec (x, c.Y)) }
-
-        { model with Paddle = paddle }
-
+    | Message.MouseMove v -> updatePaddle v model
     | Message.Tick ->
         model
         |> updateBall
@@ -64,14 +69,6 @@ let gameUpdate (msg: Message) (model: Model) =
     | _ -> model
 
 let update (msg: Message) (model: Model) =
-    let m =
-        (match msg with
-         | Message.Click ->
-             if model.State <> GameState.Running then
-                 { init () with
-                       State = GameState.Running }
-             else
-                 model
-         | _ -> model)
-
-    if m.State = GameState.Running then gameUpdate msg m else m
+    if model.State = GameState.Running then gameUpdate msg model
+    else if msg = Message.Click then onClick model
+    else model
