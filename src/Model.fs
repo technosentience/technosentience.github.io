@@ -1,124 +1,156 @@
 module Model
 
-type Vector = {
-    X: float
-    Y: float
-} with
-    static member Vec(x: float, y: float) = { X = x; Y = y }
+open FSharpPlus
 
-    static member (+) (a: Vector, b: Vector) = Vector.Vec(a.X + b.X, a.Y + b.Y)
-    static member (~-) (a: Vector) = Vector.Vec(-a.X, -a.Y)
-    static member (-) (a: Vector, b: Vector) = Vector.Vec(a.X - b.X, a.Y - b.Y)
+type Vector =
+    { X: float
+      Y: float }
+    static member (+)(a: Vector, b: Vector) = { X = a.X + b.X; Y = a.Y + b.Y }
+    static member (~-)(a: Vector) = { X = -a.X; Y = -a.Y }
+    static member (-)(a: Vector, b: Vector) = { X = a.X - b.X; Y = a.Y - b.Y }
 
-    static member (*) (a: Vector, b: float) = {X = a.X * b; Y = a.Y * b}
-    static member (*) (a: float, b: Vector) = {X = a * b.X; Y = a * b.Y}
+    static member (*)(a: Vector, b: float) = { X = a.X * b; Y = a.Y * b }
+    static member (*)(a: float, b: Vector) = { X = a * b.X; Y = a * b.Y }
 
-    static member (*) (a: Vector, b: Vector) = a.X * b.X + a.Y * b.Y
-    
+    static member (*)(a: Vector, b: Vector) = a.X * b.X + a.Y * b.Y
+
     member this.Magnitude = sqrt (this * this)
     member this.Norm = (1. / this.Magnitude) * this
 
-    static member Zero : Vector = { X = 0.0; Y = 0.0 }
+    static member Zero: Vector = { X = 0.0; Y = 0.0 }
     member this.IsZero = (this = Vector.Zero)
 
-    member this.RotateLeft a = { X = this.X * cos a - this.Y * sin a; Y = this.X * sin a + this.Y * cos a }
+    member this.RotateLeft a =
+        { X = this.X * cos a - this.Y * sin a
+          Y = this.X * sin a + this.Y * cos a }
 
 let vec (x: float, y: float) = { X = x; Y = y }
 let proj (l: Vector) (a: Vector) = (a * l) / (l * l) * l
 
-type PhysicsBall = {
-    Center: Vector
-    Velocity: Vector
-    Radius: float
-    CollisionTimeout: int
-} with
-    member this.Tick (s: float) = { this with Center = this.Center + this.Velocity * s; CollisionTimeout = max 0 (this.CollisionTimeout - 1)}
-    member this.Collide (segment: Vector) =  
+type PhysicsBall =
+    { Center: Vector
+      Velocity: Vector
+      Radius: float
+      CollisionTimeout: int }
+    member this.Tick(s: float) =
+        { this with
+              Center = this.Center + this.Velocity * s
+              CollisionTimeout = max 0 (this.CollisionTimeout - 1) }
+
+    member this.Collide(segment: Vector) =
         let v = this.Velocity
         let pr = proj segment v
         let ort = v - pr
-        { this with Velocity = pr - ort; CollisionTimeout = 2 }
-    member this.MaybeCollide (segment: Vector option) =
+        { this with
+              Velocity = pr - ort
+              CollisionTimeout = 2 }
+
+    member this.MaybeCollide(segment: Vector option) =
         match segment with
         | None -> this
         | Some v -> this.Collide v
 
-type ColliderSegment = {
-    A: Vector
-    B: Vector
-} with
-    member this.Intersects (ball: PhysicsBall) =
+type ColliderSegment =
+    { A: Vector
+      B: Vector }
+    member this.Intersects(ball: PhysicsBall) =
         let ab = this.B - this.A
         let ac = ball.Center - this.A
         let ad = proj ab ac
-        0. <= ad * ab && ad * ab <= ab * ab && (ac - ad).Magnitude <= ball.Radius
-    member this.Collides (ball: PhysicsBall) =
+        0.
+        <= ad
+        * ab
+        && ad * ab <= ab * ab
+        && (ac - ad).Magnitude <= ball.Radius
+
+    member this.Collides(ball: PhysicsBall) =
         let ab = this.B - this.A
         let ac = ball.Center - this.A
         let ad = proj ab ac
         let cd = ad - ac
-        (0. <= ad * ab && ad * ab <= ab * ab && (ac - ad).Magnitude <= ball.Radius)
-            && (cd * ball.Velocity >= 0. || ball.CollisionTimeout = 0)
+        (0.
+         <= ad
+         * ab
+         && ad * ab <= ab * ab
+         && (ac - ad).Magnitude <= ball.Radius)
+        && (cd
+            * ball.Velocity
+            >= 0.
+            || ball.CollisionTimeout = 0)
 
-type ColliderRectangle = {
-    A: Vector
-    C: Vector
-} with
+type ColliderRectangle =
+    { A: Vector
+      C: Vector }
     member this.B = { X = this.A.X; Y = this.C.Y }
     member this.D = { X = this.C.X; Y = this.A.Y }
-    member this.Segments = [
-        { A = this.A; B = this.B }
-        { A = this.B; B = this.C }
-        { A = this.C; B = this.D }
-        { A = this.D; B = this.A }
-    ]
-    member this.CollisionVector (ball: PhysicsBall) =
-        let v = List.fold 
-                    (fun v (s: ColliderSegment) -> if s.Collides ball then v + (s.B - s.A) else v)
-                    (Vector.Zero) this.Segments
+
+    member this.Segments =
+        [ { A = this.A; B = this.B }
+          { A = this.B; B = this.C }
+          { A = this.C; B = this.D }
+          { A = this.D; B = this.A } ]
+
+    member this.CollisionVector(ball: PhysicsBall) =
+        let v =
+            fold (fun v (s: ColliderSegment) -> if s.Collides ball then v + (s.B - s.A) else v) (Vector.Zero)
+                this.Segments
+
         if v.IsZero then None else Some v
-    member this.Contains (p: Vector) =
+
+    member this.Contains(p: Vector) =
         let minx = min this.A.X this.C.X
         let miny = min this.A.Y this.C.Y
         let maxx = max this.A.X this.C.X
         let maxy = max this.A.Y this.C.Y
-        minx <= p.X && p.X <= maxx && miny <= p.Y && p.Y <= maxy
+        (minx <= p.X)
+        && p.X
+        <= maxx
+        && miny <= p.Y
+        && p.Y <= maxy
 
-type ColliderPaddle = {
-    Center: Vector
-    Height: float
-    Width: float
-} with
-    member this.MainSegment = {
-        A = vec (this.Center.X - this.Width * 0.5, this.Center.Y - this.Height * 0.5)
-        B = vec (this.Center.X + this.Width * 0.5, this.Center.Y - this.Height * 0.5)
-    }
-    member this.CollisionVector (ball: PhysicsBall) =
+type ColliderPaddle =
+    { Center: Vector
+      Height: float
+      Width: float }
+    member this.MainSegment =
+        { A = vec (this.Center.X - this.Width * 0.5, this.Center.Y - this.Height * 0.5)
+          B = vec (this.Center.X + this.Width * 0.5, this.Center.Y - this.Height * 0.5) }
+
+    member this.CollisionVector(ball: PhysicsBall) =
         if not (this.MainSegment.Collides ball) then
             None
         else
             let v = this.MainSegment.A - this.MainSegment.B
-            let ratio = abs (((ball.Center - this.MainSegment.A) * v) / (v * v))
-            if ratio < 0.33 then
-                Some (v.RotateLeft -(15. / 180. * System.Math.PI))
-            else if ratio > 0.67 then
-                Some(v.RotateLeft (15. / 180. * System.Math.PI))
+
+            let ratio =
+                abs (((ball.Center - this.MainSegment.A) * v) / (v * v))
+
+            if ratio < 0.33
+            then Some(v.RotateLeft -(15. / 180. * System.Math.PI))
+            else if ratio > 0.67
+            then Some(v.RotateLeft(15. / 180. * System.Math.PI))
             else Some v
 
 [<RequireQualifiedAccess>]
-type Message = Tick | MouseMove of Vector | Click
+type Message =
+    | Tick
+    | MouseMove of Vector
+    | Click
 
 [<RequireQualifiedAccess>]
-type GameState = Halt | Running | Lost | Won
+type GameState =
+    | Halt
+    | Running
+    | Lost
+    | Won
 
-type Model = {
-    Ball: PhysicsBall
-    Paddle: ColliderPaddle
-    Border: ColliderRectangle
-    DeadArea: ColliderSegment
+type Model =
+    { Ball: PhysicsBall
+      Paddle: ColliderPaddle
+      Border: ColliderRectangle
+      DeadArea: ColliderSegment
 
-    State: GameState
-    LastTick: System.DateTime
-    
-    Targets: (ColliderRectangle * int) list
-}
+      State: GameState
+      LastTick: System.DateTime
+
+      Targets: (ColliderRectangle * int) list }
