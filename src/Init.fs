@@ -10,10 +10,9 @@ let initBall (): PhysicsBall =
           let a =
               (0.25 + 0.5 * rng.NextDouble()) * System.Math.PI
            in 20. * vec (cos a, -sin a)
-      Radius = 1.
-      CollisionTimeout = 0 }
+      Radius = 1. }
 
-let initPaddle : ColliderPaddle =
+let initPaddle : Paddle =
     { Center = vec (75., 80.)
       Width = 12.
       Height = 2. }

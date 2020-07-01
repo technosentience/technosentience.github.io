@@ -63,7 +63,7 @@ let drawBg () =
 
 let borderColor = "gray"
 
-let drawBorder (border: ColliderRectangle) =
+let drawBorder (border: Rectangle) =
     let a, ac =
         relToPixelV border.A, relToPixelV (border.C - border.A)
 
@@ -79,7 +79,7 @@ let drawBall (ball: PhysicsBall) =
 
 let paddleColor = "black"
 
-let drawPaddle (paddle: ColliderPaddle) =
+let drawPaddle (paddle: Paddle) =
     let c, w, h =
         relToPixelV paddle.Center, relToPixel paddle.Width, relToPixel paddle.Height
 
@@ -100,7 +100,7 @@ let rainbow =
 
 let tBorderColor = "gray"
 
-let drawTargets (targets: (ColliderRectangle * int) list) =
+let drawTargets (targets: (Rectangle * int) list) =
     for (t, y) in targets do
         let a, ac = relToPixelV t.A, relToPixelV (t.C - t.A)
         colorRect (rainbow.[y - 1]) (a.X, a.Y, ac.X, ac.Y)

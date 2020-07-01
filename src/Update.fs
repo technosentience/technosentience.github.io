@@ -8,18 +8,16 @@ let updateBall (model: Model) =
     let ball = model.Ball.Tick delta
     { model with Ball = ball }
 
-let processCollision (ball: PhysicsBall) (collider: ColliderSegment) =
-    if collider.Collides ball then ball.Collide(collider.B - collider.A) else ball
 
 let processTargets (model: Model) =
-    let rec f (acc: PhysicsBall * (ColliderRectangle * int) list) (li: (ColliderRectangle * int) list) =
+    let rec f (acc: PhysicsBall * (Rectangle * int) list) (li: (Rectangle * int) list) =
         match li with
         | [] -> acc
         | head :: tail ->
             let (b, pr) = acc
-            let cv = (fst head).CollisionVector b
-            match cv with
-            | Some v -> f (b.Collide v, pr) tail
+            let i = (fst head :> ICollider).CollisionInfo b
+            match i with
+            | Some i -> f (b.Collide i, pr) tail
             | None -> f (b, pr @ [ head ]) tail
 
     let ball, targets = f (model.Ball, []) model.Targets
@@ -31,10 +29,10 @@ let updateCollisions (model: Model) =
     let ball = model.Ball
 
     let ball =
-        ball.MaybeCollide(model.Border.CollisionVector ball)
+        ball.ProcessCollider model.Border
 
     let ball =
-        ball.MaybeCollide(model.Paddle.CollisionVector ball)
+        ball.ProcessCollider model.Paddle
 
     processTargets { model with Ball = ball }
 

@@ -1,6 +1,7 @@
 module Model
 
-open FSharpPlus
+let between l u x = l <= x && x <= u
+let clamp l u x = max (min x u) l
 
 type Vector =
     { X: float
@@ -25,60 +26,57 @@ type Vector =
           Y = this.X * sin a + this.Y * cos a }
 
 let vec (x: float, y: float) = { X = x; Y = y }
-let proj (l: Vector) (a: Vector) = (a * l) / (l * l) * l
+
+let proj (l: Vector) (v: Vector) = (v * l) / (l * l) * l
+let ort (l: Vector) (v: Vector) = v - proj l v
+let reflect (l: Vector) (v: Vector) = proj l v - ort l v
+
+type CollisionInfo = { Line: Vector; Point: Vector }
 
 type PhysicsBall =
     { Center: Vector
       Velocity: Vector
-      Radius: float
-      CollisionTimeout: int }
+      Radius: float }
     member this.Tick(s: float) =
         { this with
-              Center = this.Center + this.Velocity * s
-              CollisionTimeout = max 0 (this.CollisionTimeout - 1) }
+              Center = this.Center + this.Velocity * s }
 
-    member this.Collide(segment: Vector) =
-        let v = this.Velocity
-        let pr = proj segment v
-        let ort = v - pr
+    member this.Collide(x: CollisionInfo) =
         { this with
-              Velocity = pr - ort
-              CollisionTimeout = 2 }
+              Center = x.Point // Retroactively move the ball to the point of collision
+              Velocity = reflect x.Line this.Velocity }
 
-    member this.MaybeCollide(segment: Vector option) =
-        match segment with
+type ICollider =
+    abstract CollisionInfo: PhysicsBall -> CollisionInfo option
+
+type PhysicsBall with
+    member this.ProcessCollider(collider: ICollider) =
+        match collider.CollisionInfo this with
         | None -> this
-        | Some v -> this.Collide v
+        | Some info -> this.Collide info
 
-type ColliderSegment =
+type Segment =
     { A: Vector
       B: Vector }
     member this.Intersects(ball: PhysicsBall) =
         let ab = this.B - this.A
         let ac = ball.Center - this.A
-        let ad = proj ab ac
-        0.
-        <= ad
-        * ab
-        && ad * ab <= ab * ab
-        && (ac - ad).Magnitude <= ball.Radius
-
-    member this.Collides(ball: PhysicsBall) =
-        let ab = this.B - this.A
-        let ac = ball.Center - this.A
-        let ad = proj ab ac
+        let ad = proj ab ac // Point D is the projection of C on AB
         let cd = ad - ac
-        (0.
-         <= ad
-         * ab
-         && ad * ab <= ab * ab
-         && (ac - ad).Magnitude <= ball.Radius)
-        && (cd
-            * ball.Velocity
-            >= 0.
-            || ball.CollisionTimeout = 0)
+        (ad * ab |> between 0. (ab * ab)) // D is inside AB
+        && (cd.Magnitude <= ball.Radius) // D is inside the circle
 
-type ColliderRectangle =
+    interface ICollider with
+        member this.CollisionInfo ball =
+            let ab = this.B - this.A
+            let ac = ball.Center - this.A
+            let ad = proj ab ac
+            let cd = ad - ac
+            let c' = this.A + ad - cd.Norm * ball.Radius
+            if this.Intersects ball then Some { Line = ab; Point = c' } else None
+
+
+type Rectangle =
     { A: Vector
       C: Vector }
     member this.B = { X = this.A.X; Y = this.C.Y }
@@ -90,25 +88,18 @@ type ColliderRectangle =
           { A = this.C; B = this.D }
           { A = this.D; B = this.A } ]
 
-    member this.CollisionVector(ball: PhysicsBall) =
-        let v =
-            fold (fun v (s: ColliderSegment) -> if s.Collides ball then v + (s.B - s.A) else v) (Vector.Zero)
-                this.Segments
-
-        if v.IsZero then None else Some v
-
     member this.Contains(p: Vector) =
         let minx = min this.A.X this.C.X
         let miny = min this.A.Y this.C.Y
         let maxx = max this.A.X this.C.X
         let maxy = max this.A.Y this.C.Y
-        (minx <= p.X)
-        && p.X
-        <= maxx
-        && miny <= p.Y
-        && p.Y <= maxy
+        (between minx maxx p.X) && (between miny maxy p.Y)
 
-type ColliderPaddle =
+    interface ICollider with
+        member this.CollisionInfo ball =
+            List.fold (fun s x -> if s = None then (x :> ICollider).CollisionInfo ball else s) None this.Segments
+
+type Paddle =
     { Center: Vector
       Height: float
       Width: float }
@@ -116,20 +107,28 @@ type ColliderPaddle =
         { A = vec (this.Center.X - this.Width * 0.5, this.Center.Y - this.Height * 0.5)
           B = vec (this.Center.X + this.Width * 0.5, this.Center.Y - this.Height * 0.5) }
 
-    member this.CollisionVector(ball: PhysicsBall) =
-        if not (this.MainSegment.Collides ball) then
-            None
-        else
+    interface ICollider with
+        member this.CollisionInfo ball =
+            let info =
+                (this.MainSegment :> ICollider).CollisionInfo ball
+
             let v = this.MainSegment.A - this.MainSegment.B
 
             let ratio =
                 abs (((ball.Center - this.MainSegment.A) * v) / (v * v))
 
-            if ratio < 0.33
-            then Some(v.RotateLeft -(15. / 180. * System.Math.PI))
-            else if ratio > 0.67
-            then Some(v.RotateLeft(15. / 180. * System.Math.PI))
-            else Some v
+            let angle =
+                match ratio with
+                | x when x < 0.33 -> -System.Math.PI * (15. / 180.)
+                | x when x > 0.67 -> System.Math.PI * (15. / 180.)
+                | _ -> 0.
+
+            match info with
+            | None -> None
+            | Some info ->
+                Some
+                    { info with
+                          Line = info.Line.RotateLeft angle }
 
 [<RequireQualifiedAccess>]
 type Message =
@@ -146,11 +145,11 @@ type GameState =
 
 type Model =
     { Ball: PhysicsBall
-      Paddle: ColliderPaddle
-      Border: ColliderRectangle
-      DeadArea: ColliderSegment
+      Paddle: Paddle
+      Border: Rectangle
+      DeadArea: Segment
 
       State: GameState
       LastTick: System.DateTime
 
-      Targets: (ColliderRectangle * int) list }
+      Targets: (Rectangle * int) list }
