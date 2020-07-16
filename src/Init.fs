@@ -9,7 +9,7 @@ let initBall (): PhysicsBall =
       Velocity =
           let a =
               (0.25 + 0.5 * rng.NextDouble()) * System.Math.PI
-           in 20. * vec (cos a, -sin a)
+           in 18. * vec (cos a, -sin a)
       Radius = 1. }
 
 let initPaddle : Paddle =

@@ -9,8 +9,8 @@ open Elmish
 let canvWidth = window.innerWidth * 0.9
 let canvHeight = window.innerHeight * 0.9
 
-let gameAreaWidth = canvWidth // Width/height in pixels
-let gameAreaHeight = canvWidth / 1.5
+let gameAreaWidth = min canvWidth (canvHeight * 1.5) // Width/height in pixels
+let gameAreaHeight = min (canvWidth / 1.5) canvHeight
 
 let relHeight = 100. // Width/height in relative units
 let relWidth = 150.
