@@ -9,10 +9,11 @@ let initBall (): PhysicsBall =
       Velocity =
           let a =
               (0.25 + 0.5 * rng.NextDouble()) * System.Math.PI
-           in 18. * vec (cos a, -sin a)
+
+          18. * vec (cos a, -sin a)
       Radius = 1. }
 
-let initPaddle : Paddle =
+let initPaddle: Paddle =
     { Center = vec (75., 80.)
       Width = 12.
       Height = 2. }

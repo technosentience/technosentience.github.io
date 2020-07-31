@@ -72,7 +72,7 @@ type Segment =
             let ac = ball.Center - this.A
             let ad = proj ab ac
             let cd = ad - ac
-            let c' = this.A + ad - cd.Norm * ball.Radius    // Position of center when collision occured
+            let c' = this.A + ad - cd.Norm * ball.Radius // Position of center when collision occured
             if this.Intersects ball then Some { Line = ab; Point = c' } else None
 
 
@@ -117,10 +117,10 @@ type Paddle =
             let ratio =
                 abs (((ball.Center - this.MainSegment.A) * v) / (v * v))
 
-            let angle =     // When the ball lands on borders of the paddle, veer it left/right
+            let angle = // When the ball lands on borders of the paddle, veer it left/right
                 match ratio with
-                | x when x < 0.33 -> -System.Math.PI * (15. / 180.)
-                | x when x > 0.67 -> System.Math.PI * (15. / 180.)
+                | x when x < 0.33 -> -System.Math.PI * (7.5 / 180.)
+                | x when x > 0.67 -> System.Math.PI * (7.5 / 180.)
                 | _ -> 0.
 
             match info with
