@@ -6,4 +6,4 @@ Compiled to Javascript with the [Fable](https://fable.io/) compiler. Uses the [E
 
 Development is halted for now, though in the future I might add features like multiple lives, power-ups and so on.
 
-Play at [operatorgk.github.io](https://operatorgk.github.io)
+Play at [technosentience.github.io](https://technosentience.github.io)
